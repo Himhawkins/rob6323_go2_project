@@ -271,7 +271,7 @@ class Rob6323Go2Env(DirectRLEnv):
         rew_foot_clearance = torch.square(target_height - foot_height) * (1 - self.desired_contact_states)
         rew_feet_clearance = torch.sum(rew_foot_clearance, dim=1) 
 
-        foot_forces = torch.norm(self.self._contact_sensor.data.net_forces_w[:, self._feet_ids_sensor, :], dim=-1)
+        foot_forces = torch.norm(self._contact_sensor.data.net_forces_w[:, self._feet_ids_sensor, :], dim=-1)
         desired_contact = self.desired_contact_states
         rew_tracking_contacts_shaped_force = 0.
         for i in range(4):
@@ -300,7 +300,7 @@ class Rob6323Go2Env(DirectRLEnv):
 
         # 2. Penalize vertical velocity (z-component of base linear velocity)
         # Hint: Square the Z component of the base linear velocity.
-        rew_lin_vel_z = torch.sum(torch.square(self.robot.data.root_lin_vel_b[:, 2]), dim=1)
+        rew_lin_vel_z = torch.square(self.robot.data.root_lin_vel_b[:, 2])
 
         # 3. Penalize high joint velocities
         # Hint: Sum the squares of all joint velocities.
