@@ -63,7 +63,10 @@ class Rob6323Go2EnvCfg(DirectRLEnvCfg):
         debug_vis=False,
     )
     # robot(s)
-    robot_cfg: ArticulationCfg = UNITREE_GO2_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    robot_cfg: ArticulationCfg = UNITREE_GO2_CFG.replace(prim_path="/World/envs/env_.*/Robot") #PS NEW LINE!
+
+    
+
     robot_cfg.actuators["base_legs"] = ImplicitActuatorCfg(
     joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
     effort_limit=23.5,
@@ -98,7 +101,7 @@ class Rob6323Go2EnvCfg(DirectRLEnvCfg):
     base_height_min = 0.20
     raibert_heuristic_reward_scale = -10.0
     feet_clearance_reward_scale = -30.0
-    tracking_contacts_shaped_force_reward_scale = 4.0
+    tracking_contacts_shaped_force_reward_scale = 0.4
     # Additional reward scales
     orient_reward_scale = -5.0
     lin_vel_z_reward_scale = -0.02

@@ -52,6 +52,8 @@ class Rob6323Go2Env(DirectRLEnv):
                 "ang_vel_xy",
                 "rew_feet_clearance",
                 "rew_tracking_contacts_shaped_force",
+                "flip_rotation",
+                "jump_height"
                 # "self_collision_penalty"
         
             ]
@@ -309,7 +311,7 @@ class Rob6323Go2Env(DirectRLEnv):
         self.last_actions[:, :, 0] = self._actions[:]
         self._step_contact_targets() # Update gait state
         rew_raibert_heuristic = self._reward_raibert_heuristic()
-        
+
         # 1. Penalize non-vertical orientation (projected gravity on XY plane)
         # Hint: We want the robot to stay upright, so gravity should only project onto Z.
         # Calculate the sum of squares of the X and Y components of projected_gravity_b.
@@ -326,7 +328,14 @@ class Rob6323Go2Env(DirectRLEnv):
         # 4. Penalize angular velocity in XY plane (roll/pitch)
         # Hint: Sum the squares of the X and Y components of the base angular velocity.
         rew_ang_vel_xy = torch.sum(torch.square(self.robot.data.root_ang_vel_b[:, :2]), dim=1)
+
+        target_flip_speed = -6.0 # Radians per second (Negative for backflip)
+        current_pitch_vel = self.robot.data.root_ang_vel_b[:, 1]
+        rew_flip_rotation = torch.exp(-torch.square(current_pitch_vel - target_flip_speed))
+        root_height = self.robot.data.root_pos_w[:, 2]
         rew_feet_clearance,rew_tracking_contacts_shaped_force =self._get_foot_placement_rew()
+        rew_jump_height = torch.clamp(root_height - 0.3, min=0.0) # Reward being above 0.3m
+
 
         # Undesired Contacts /Collision Penalty
         # self_collision_penalty=torch.sum(torch.norm(self._contact_sensor.data.net_forces_w[:, self._undesired_contact_body_ids, :], dim=-1),dim=-1)
@@ -337,10 +346,12 @@ class Rob6323Go2Env(DirectRLEnv):
             "track_ang_vel_z_exp": yaw_rate_error_mapped * self.cfg.yaw_rate_reward_scale, # * self.step_dt,
             "rew_action_rate": rew_action_rate * self.cfg.action_rate_reward_scale,
             "raibert_heuristic": rew_raibert_heuristic * self.cfg.raibert_heuristic_reward_scale,
-            "orient": rew_orient * self.cfg.orient_reward_scale,
-            "lin_vel_z": rew_lin_vel_z * self.cfg.lin_vel_z_reward_scale,
+            "orient":  0.0* rew_orient * self.cfg.orient_reward_scale,
+            "lin_vel_z": rew_lin_vel_z * 1,   #self.cfg.lin_vel_z_reward_scale,
             "dof_vel": rew_dof_vel * self.cfg.dof_vel_reward_scale,
-            "ang_vel_xy": rew_ang_vel_xy * self.cfg.ang_vel_xy_reward_scale,
+            # "ang_vel_xy": rew_ang_vel_xy * self.cfg.ang_vel_xy_reward_scale,
+            "flip_rotation": rew_flip_rotation * 5.0, # Heavy weight on spinning
+            "jump_height": rew_jump_height * 2.0, # Encourage air time
             "rew_feet_clearance":rew_feet_clearance* self.cfg.feet_clearance_reward_scale,
             "rew_tracking_contacts_shaped_force":rew_tracking_contacts_shaped_force* self.cfg.tracking_contacts_shaped_force_reward_scale / 4,
             # "self_collision_penalty":self_collision_penalty*5
@@ -360,7 +371,7 @@ class Rob6323Go2Env(DirectRLEnv):
         cstr_base_height_min = base_height < self.cfg.base_height_min
         #New- From Issac Inv G02Terrain example for self collision
         unwanted_contact = torch.norm(self._contact_sensor.data.net_forces_w[:, self._undesired_contact_body_ids, :], dim=2) > 1.
-        died = cstr_termination_contacts | cstr_upsidedown | cstr_base_height_min  # | torch.any(unwanted_contact, dim=1)
+        died = cstr_termination_contacts  | cstr_base_height_min  #| cstr_upsidedown # | torch.any(unwanted_contact, dim=1)
         
         return died, time_out
 
