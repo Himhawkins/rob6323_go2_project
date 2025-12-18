@@ -94,18 +94,24 @@ class Rob6323Go2EnvCfg(DirectRLEnvCfg):
     current_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
 
     # reward scales
-    lin_vel_reward_scale = 1.0
-    yaw_rate_reward_scale = 0.5
+    lin_vel_reward_scale = 2.0 #1.0
+    yaw_rate_reward_scale = 0.1
     # reward scales
     action_rate_reward_scale = -0.1
-    base_height_min = 0.05
+    base_height_min = 0.25 #0.05 # ps 0.20
     raibert_heuristic_reward_scale = -10.0
     feet_clearance_reward_scale = -30.0
-    tracking_contacts_shaped_force_reward_scale = 4.0
+    tracking_contacts_shaped_force_reward_scale =   0.5 #4 #0.4
     # Additional reward scales
-    orient_reward_scale = -5.0
-    lin_vel_z_reward_scale = -0.02
+    # orient_reward_scale = -5.0
+    # lin_vel_z_reward_scale = -0.02
     dof_vel_reward_scale = -0.0001
     ang_vel_xy_reward_scale = -0.001
 
-    
+    orient_reward_scale = 0.0 # DISABLE THE OLD FLAT REWARD
+    lin_vel_z_reward_scale = 0.0 # Disable Z penalty (we want to lift up)
+
+    # New Bipedal Scales
+    upright_reward_scale = 8.0
+    lift_up_reward_scale = 4.0
+    front_air_reward_scale = 15.0  #0.05
