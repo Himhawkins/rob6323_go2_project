@@ -1,44 +1,3 @@
-## This repository contains the reward shaping and simulation for training a quadruped robot dog for stable, robust walking gait and velocity command tracking using PPO on Issaclab
-# Commit History (Earliest to Latest)
-
-## Added the following:
-- Manual PD controller
-- Raibert heuristic (gait shaping)
-- Gait logic
-- Early stopping
-
-## Added following New Rewards:
-- Action penalties
-  - Velocity
-  - Acceleration
-- Raibert heuristic reward
-- Flat orientation reward
-- Vertical linear velocity reward
-- joint velocities reward
-- Angular velocity reward (x and y)
-- Foot interaction rewards
-  - Foot clearance reward
-  - Tracking contact shaped force reward
-
-## Fixes and Improvements
-- Fixed minor bugs and syntax errors
-- Contact sensing fix
-  - Linked contact sensor variable to the simulator in `setup_scene`
-- Added random joint friction to simulation in `apply_actions`
-- Fixed tracking contact reward scale
-- Fixed base minimum height constraint
-
-## Experimental / Bonus
-- Experimental code added for:
-  - Bipedal
-  - Flip
-
-
-
-
-
-
-
 
 
 
@@ -208,4 +167,47 @@ The suggested way to inspect these logs is via the Open OnDemand web interface:
     - [ContactSensorData (`_contact_sensor.data`)](https://isaac-sim.github.io/IsaacLab/main/source/api/lab/isaaclab.sensors.html#isaaclab.sensors.ContactSensorData) — Contains `net_forces_w` (contact forces).
 
 ---
-Students should only edit README.md below this ligne.
+Students should only edit README.md below this line.
+
+## This repository contains the reward shaping and simulation for training a quadruped robot dog for stable, robust walking gait and velocity command tracking using PPO on Issaclab
+# Commit History (Earliest to Latest)
+
+## Added the following:
+- Manual PD controller
+- Raibert heuristic (gait shaping)
+- Gait logic
+- Early stopping
+
+## Added following New Rewards:
+- Action penalties
+  - Velocity
+  - Acceleration
+- Raibert heuristic reward
+- Flat orientation reward
+- Vertical linear velocity reward
+- joint velocities reward
+- Angular velocity reward (x and y)
+- Foot interaction rewards
+  - Foot clearance reward
+  - Tracking contact shaped force reward
+
+## Fixes and Improvements
+- Fixed minor bugs and syntax errors
+- Contact sensing fix
+  - Linked contact sensor variable to the simulator in `setup_scene`
+- Added random joint friction to simulation in `apply_actions`
+- Fixed tracking contact reward scale
+- Fixed base minimum height constraint
+
+## Experimental / Bonus
+- Experimental code added for:
+  - Bipedal
+  - Flip
+
+
+
+
+
+
+
+
