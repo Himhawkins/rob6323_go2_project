@@ -1,3 +1,46 @@
+# Commit History (Earliest to Latest)
+
+## Added the following:
+- Manual PD controller
+- Raibert heuristic (gait shaping)
+- Gait logic
+- Early stopping
+
+## Added following New Rewards:
+- Action penalties
+  - Velocity
+  - Acceleration
+- Raibert heuristic reward
+- Flat orientation reward
+- Vertical linear velocity reward
+- joint velocities reward
+- Angular velocity reward (x and y)
+- Foot interaction rewards
+  - Foot clearance reward
+  - Tracking contact shaped force reward
+
+## Fixes and Improvements
+- Fixed minor bugs and syntax errors
+- Contact sensing fix
+  - Linked contact sensor variable to the simulator in `setup_scene`
+- Added random joint friction to simulation in `apply_actions`
+- Fixed tracking contact reward scale
+- Fixed base minimum height constraint
+
+## Experimental / Bonus
+- Experimental code added for:
+  - Bipedal
+  - Flip
+
+
+
+
+
+
+
+
+
+
 # ROB6323 Go2 Project — Isaac Lab
 
 This repository is the starter code for the NYU Reinforcement Learning and Optimal Control project in which students train a Unitree Go2 walking policy in Isaac Lab starting from a minimal baseline and improve it via reward shaping and robustness strategies. Please read this README fully before starting and follow the exact workflow and naming rules below to ensure your runs integrate correctly with the cluster scripts and grading pipeline.
