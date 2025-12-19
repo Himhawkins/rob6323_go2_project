@@ -1,3 +1,4 @@
+## This repository contains the reward shaping and simulation for training a qudaroped robot dog for stable, robust walking gait and velocity command tracking using PPO on Issaclab
 # Commit History (Earliest to Latest)
 
 ## Added the following:
