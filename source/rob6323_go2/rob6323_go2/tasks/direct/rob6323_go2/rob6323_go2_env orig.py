@@ -52,9 +52,6 @@ class Rob6323Go2Env(DirectRLEnv):
                 "ang_vel_xy",
                 "rew_feet_clearance",
                 "rew_tracking_contacts_shaped_force",
-                "rew_lift_up",
-                "rew_upright",
-                "rew_front_air"
                 # "self_collision_penalty"
         
             ]
@@ -64,8 +61,7 @@ class Rob6323Go2Env(DirectRLEnv):
         self.last_actions = torch.zeros(self.num_envs, 
         gym.spaces.flatdim(self.single_action_space), 3, dtype=torch.float, device=self.device, requires_grad=False)
 
-        self.front_feet_indices = [0, 1] # FL, FR -> The "Hands"
-        self.rear_feet_indices = [2, 3]  # RL, RR -> The "Legs"
+
         # Get specific body indices
         self._base_id, _ = self._contact_sensor.find_bodies("base")
         self._feet_ids_sensor, _ = self._contact_sensor.find_bodies(".*foot")
@@ -180,10 +176,6 @@ class Rob6323Go2Env(DirectRLEnv):
 
         # raibert offsets
         phases = torch.abs(1.0 - (self.foot_indices * 2.0)) * 1.0 - 0.5
-        rear_mask = torch.tensor([0., 0., 1., 1.], device=self.device).unsqueeze(0)
-        phases = phases * rear_mask #disable heuristic for front two legs
-
-
         frequencies = torch.tensor([3.0], device=self.device)
         x_vel_des = self._commands[:, 0:1]
         yaw_vel_des = self._commands[:, 2:3]
@@ -294,7 +286,7 @@ class Rob6323Go2Env(DirectRLEnv):
         foot_forces = torch.norm(self._contact_sensor.data.net_forces_w[:, self._feet_ids_sensor, :], dim=-1)
         desired_contact = self.desired_contact_states
         rew_tracking_contacts_shaped_force = 0.
-        for i in [2,3]:
+        for i in range(4):
             rew_tracking_contacts_shaped_force += - (1 - desired_contact[:, i]) * (
                         1 - torch.exp(-1 * foot_forces[:, i] ** 2 / 100.))
         rew_tracking_contacts_shaped_force = rew_tracking_contacts_shaped_force 
@@ -306,7 +298,7 @@ class Rob6323Go2Env(DirectRLEnv):
 
     def _get_rewards(self) -> torch.Tensor:
         # linear velocity tracking
-        lin_vel_error = torch.sum(torch.square(torch.abs(self._commands[:, :2]) - torch.abs(self.robot.data.root_lin_vel_b[:, :2])), dim=1)
+        lin_vel_error = torch.sum(torch.square(self._commands[:, :2] - self.robot.data.root_lin_vel_b[:, :2]), dim=1)
         lin_vel_error_mapped = torch.exp(-lin_vel_error / 0.25)
         # yaw rate tracking
         yaw_rate_error = torch.square(self._commands[:, 2] - self.robot.data.root_ang_vel_b[:, 2])
@@ -336,30 +328,6 @@ class Rob6323Go2Env(DirectRLEnv):
         rew_ang_vel_xy = torch.sum(torch.square(self.robot.data.root_ang_vel_b[:, :2]), dim=1)
         rew_feet_clearance,rew_tracking_contacts_shaped_force =self._get_foot_placement_rew()
 
-        #bipedal rewards
-        front_contact_forces = torch.norm(self._contact_sensor.data.net_forces_w[:, self.front_feet_indices, :], dim=-1)
-        rew_front_air = (front_contact_forces > 1.0).float().sum(dim=1) * -1.0 # Negative reward for contact
-        # Get the robot's forward vector (Body X-axis) expressed in World Frame
-        # We can calculate this by rotating the vector [1,0,0] by the robot's quaternion
-        forward_vec_b = torch.tensor([1.0, 0.0, 0.0], device=self.device).repeat(self.num_envs, 1)
-        forward_vec_w = math_utils.quat_apply(self.robot.data.root_quat_w, forward_vec_b)
-
-        # Target: Point Diagonal Up-Back (simulating Script A's [0.2, 0, -1] which acts as the gravity target)
-        # We want the robot to look "Up". Let's use World Z [0, 0, 1] as the target alignment for the Body X.
-        target_vec_w = torch.tensor([0.2, 0.0, 1.0], device=self.device).repeat(self.num_envs, 1) # Tune X for lean
-        target_vec_w = math_utils.normalize(target_vec_w)
-
-        # Reward alignment (Dot Product)
-        # 1.0 = Perfectly aligned, 0.0 = 90 deg off.
-        dot_prod = torch.sum(forward_vec_w * target_vec_w, dim=1)
-        rew_upright = torch.square(torch.clamp(dot_prod, min=0)) 
-
-        # --- 3. Lift Up Reward (NEW) ---
-        # Reward maintaining a high Center of Mass (CoM)
-        root_height = self.robot.data.root_pos_w[:, 2]
-        # Target height range [0.35, 0.55]. Map normalized to 0-1.
-        rew_lift_up = torch.clamp((root_height - 0.35) / (0.55 - 0.35), 0.0, 1.0)
-
         # Undesired Contacts /Collision Penalty
         # self_collision_penalty=torch.sum(torch.norm(self._contact_sensor.data.net_forces_w[:, self._undesired_contact_body_ids, :], dim=-1),dim=-1)
         
@@ -369,15 +337,12 @@ class Rob6323Go2Env(DirectRLEnv):
             "track_ang_vel_z_exp": yaw_rate_error_mapped * self.cfg.yaw_rate_reward_scale, # * self.step_dt,
             "rew_action_rate": rew_action_rate * self.cfg.action_rate_reward_scale,
             "raibert_heuristic": rew_raibert_heuristic * self.cfg.raibert_heuristic_reward_scale,
-            "orient": rew_orient * self.cfg.orient_reward_scale, #now ZERO
-            "lin_vel_z": rew_lin_vel_z * self.cfg.lin_vel_z_reward_scale, #now ZERO
+            "orient": rew_orient * self.cfg.orient_reward_scale,
+            "lin_vel_z": rew_lin_vel_z * self.cfg.lin_vel_z_reward_scale,
             "dof_vel": rew_dof_vel * self.cfg.dof_vel_reward_scale,
             "ang_vel_xy": rew_ang_vel_xy * self.cfg.ang_vel_xy_reward_scale,
             "rew_feet_clearance":rew_feet_clearance* self.cfg.feet_clearance_reward_scale,
             "rew_tracking_contacts_shaped_force":rew_tracking_contacts_shaped_force* self.cfg.tracking_contacts_shaped_force_reward_scale / 4,
-            "rew_lift_up": rew_lift_up*self.cfg.lift_up_reward_scale,
-            "rew_upright":rew_upright*self.cfg.upright_reward_scale,
-            "rew_front_air":rew_front_air*self.cfg.front_air_reward_scale
             # "self_collision_penalty":self_collision_penalty*5
         }
         reward = torch.sum(torch.stack(list(rewards.values())), dim=0)
@@ -398,36 +363,7 @@ class Rob6323Go2Env(DirectRLEnv):
         died = cstr_termination_contacts | cstr_upsidedown | cstr_base_height_min  # | torch.any(unwanted_contact, dim=1)
         
         return died, time_out
-    def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        # 1. Max Episode Length (Standard)
-        time_out = self.episode_length_buf >= self.max_episode_length - 1
 
-        # 2. Base Contact (Standard)
-        # If the chassis/body touches the ground
-        net_contact_forces = self._contact_sensor.data.net_forces_w_history
-        cstr_termination_contacts = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
-
-        # 3. Orientation (TIGHTENED for Biped)
-        # Terminate if tilted too far (pitch/roll > ~60 deg). 
-        # Original was > 0 (90 deg). We change to > -0.5 to catch falls earlier.
-        cstr_fallen = self.robot.data.projected_gravity_b[:, 2] > -0.5 
-
-        # 4. Base Height (Standard logic, but ensure Config value is high enough)
-        # Check if height < 0.30m (Adjust self.cfg.base_height_min in config!)
-        base_height = self.robot.data.root_pos_w[:, 2]
-        cstr_base_height_min = base_height < self.cfg.base_height_min+0.05
-
-        # 5. Unwanted Contacts (ENABLED)
-        # Terminate if Thighs touch the ground.
-        # Note: Ensure self._undesired_contact_body_ids includes ".*thigh"
-        unwanted_contact = torch.norm(self._contact_sensor.data.net_forces_w[:, self._undesired_contact_body_ids, :], dim=2) > 1.0
-        cstr_unwanted_contact = torch.any(unwanted_contact, dim=1)
-
-        # --- Combine Conditions ---
-        # We add cstr_unwanted_contact to the termination list
-        died = cstr_termination_contacts | cstr_fallen | cstr_base_height_min | cstr_unwanted_contact
-        
-        return died, time_out
     def _reset_idx(self, env_ids: Sequence[int] | None):
 
         dist_mu_v = Uniform(0.0, 0.3)

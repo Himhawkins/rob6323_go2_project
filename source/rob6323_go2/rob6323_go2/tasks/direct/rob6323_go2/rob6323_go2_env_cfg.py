@@ -29,12 +29,12 @@ class Rob6323Go2EnvCfg(DirectRLEnvCfg):
     # - spaces definition
     action_scale = 0.25
     action_space = 12
-    observation_space = 48+4
+    observation_space = 48+4 + 3  # Added +3 for (CoM - CoP) vector
     state_space = 0
     debug_vis = True
     # PD control gains
-    Kp = 20.0  # Proportional gain
-    Kd = 0.5   # Derivative gain
+    Kp = 30.0 #20  # Proportional gain
+    Kd = 0.8   # Derivative gain
     torque_limits = 100.0  # Max torque
 
     # simulation
@@ -94,18 +94,28 @@ class Rob6323Go2EnvCfg(DirectRLEnvCfg):
     current_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
 
     # reward scales
-    lin_vel_reward_scale = 1.0
-    yaw_rate_reward_scale = 0.5
+    lin_vel_reward_scale = 0.0 #2.0 #1.0
+    yaw_rate_reward_scale = 0.0 # 0.1
     # reward scales
     action_rate_reward_scale = -0.1
-    base_height_min = 0.05
-    raibert_heuristic_reward_scale = -10.0
-    feet_clearance_reward_scale = -30.0
-    tracking_contacts_shaped_force_reward_scale = 4.0
+    base_height_min = 0.25 #0.05 # ps 0.20
+    raibert_heuristic_reward_scale =  0 #-1.0 #-10.0
+    feet_clearance_reward_scale = 0 # -30.0
+    tracking_contacts_shaped_force_reward_scale =   0.5 #4 #0.4
     # Additional reward scales
-    orient_reward_scale = -5.0
-    lin_vel_z_reward_scale = -0.02
+    # orient_reward_scale = -5.0
+    # lin_vel_z_reward_scale = -0.02
     dof_vel_reward_scale = -0.0001
     ang_vel_xy_reward_scale = -0.001
 
-    
+    orient_reward_scale = -4.0 # DISABLE THE OLD FLAT REWARD
+    lin_vel_z_reward_scale = 0.0 # Disable Z penalty (we want to lift up)
+
+    # New Bipedal Scales
+    upright_reward_scale = 6.0
+    lift_up_reward_scale = 4.0
+    front_air_reward_scale = 3.0  #0.05
+
+    vhip_angle_reward_scale = -2.0      # Minimize tilting angle
+    cart_table_reward_scale = -2.0      # Minimize horizontal lever arm
+    vhip_acc_reward_scale = -0.05       # Minimize jerky falling movements
